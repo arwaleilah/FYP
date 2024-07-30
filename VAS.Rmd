@@ -1,0 +1,62 @@
+---
+title: "VAS"
+author: "Arwa Adib"
+date: "2024-06-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(rio)
+library(tidyverse)
+library(semPlot)
+library(lavaan)
+library(psych)
+library(dplyr)
+```
+
+#Import Data
+
+```{r}
+data<- import("VAS-D (2.2)_June 21, 2024_11.46.csv")
+```
+
+```{r}
+data_subset <- data %>% select(-c(StartDate:UserLanguage))
+```
+
+```{r}
+data_subset <- data_subset %>%
+  mutate(Q1 = ifelse(Q1 == "0 (No Depression At All)", "0", Q1))
+```
+
+```{r}
+vas_df <- data_subset[-c(1, 2), ]
+```
+
+```{r}
+vas_df <- vas_df %>%
+  rename(Participant_ID = QID2)
+```
+
+```{r}
+str(vas_df)
+
+# Convert columns Q1 to Q44 to numeric
+vas_df <- vas_df %>%
+  mutate(Q1 = as.numeric(Q1))
+
+vas_df <- vas_df %>%
+  mutate(Participant_ID = as.factor(Participant_ID))
+
+str(vas_df)
+```
+
+# Summarize Scores
+
+```{r}
+descirptives_table <- head(vas_df[c("Participant_ID", "Q1")])
+
+descirptives_table
+```
