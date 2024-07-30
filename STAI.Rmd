@@ -1,0 +1,97 @@
+---
+title: "STAI"
+author: "Arwa Adib"
+date: "2024-06-21"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(rio)
+library(tidyverse)
+library(semPlot)
+library(lavaan)
+library(psych)
+library(dplyr)
+```
+
+#Import Data
+
+```{r}
+stai_data<- import("STAI 2.1_June 21, 2024_11.24.csv")
+```
+
+```{r}
+stai_data_subset <- stai_data %>% select(-c(StartDate:UserLanguage))
+```
+
+#Isolate Numeric Values
+
+```{r}
+# Function to extract the number from the format "description, (#)"
+extract_number <- function(x) {
+    as.numeric(gsub(".*\\((\\d+)\\).*", "\\1", x))
+}
+
+# Apply the function to each column for all rows except the first
+stai_df <- stai_data_subset
+stai_df[-1, ] <- lapply(stai_data_subset[-1, ], extract_number)
+```
+```{r}
+stai_df <- stai_df[-c(1, 2), ]
+```
+
+```{r}
+stai_df <- stai_df %>%
+  rename(Participant_ID = QID8)
+```
+
+```{r}
+str(stai_df)
+
+# Convert columns Q1 to Q6 to numeric
+stai_df <- stai_df %>%
+  mutate(across(starts_with("Q"), as.numeric))
+
+stai_df <- stai_df %>%
+  mutate(Participant_ID = as.factor(Participant_ID))
+
+stai_df <- stai_df %>%
+  mutate(SC0 = as.numeric(SC0))
+
+str(stai_df)
+```
+
+# Reverse Code 
+
+```{r}
+# Reverse Code Questions: 1, 4, 5
+
+columns_to_reverse <- c("Q1", "Q4", "Q5")
+
+# Reverse code the specified columns
+stai_df[columns_to_reverse] <- lapply(stai_df[columns_to_reverse], function(x) 5 - x)
+```
+
+# Scoring
+
+Calculation: after reverse scoring sum the scores (SCO)
+Multiply the total by 20/6
+
+```{r}
+stai_df <- stai_df %>%
+  mutate(STAI_score = SC0 * (20 / 6))
+
+#Refer to spielberger’s manuals to interpret scores
+#“A normal score is 34-36”
+```
+
+# Summarize Scores
+
+```{r}
+descirptives_table <- head(stai_df[c("Participant_ID", "STAI_score")])
+
+descirptives_table
+```

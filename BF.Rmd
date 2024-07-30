@@ -1,0 +1,119 @@
+---
+title: "BF Analysis"
+author: "Arwa Adib"
+date: "2024-06-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(rio)
+library(tidyverse)
+library(semPlot)
+library(lavaan)
+library(psych)
+library(dplyr)
+```
+
+#Import Data
+
+```{r}
+data<- import("Big Five Inventory_June 20, 2024_10.56.csv")
+```
+
+```{r}
+data_subset <- data %>% select(-c(StartDate:UserLanguage))
+```
+
+
+#Isolate Numeric Values
+
+```{r}
+# Function to extract the number from the format "description, (#)"
+extract_number <- function(x) {
+    as.numeric(gsub(".*\\((\\d+)\\).*", "\\1", x))
+}
+
+# Apply the function to each column for all rows except the first
+modified_df <- data_subset
+modified_df[-1, ] <- lapply(data_subset[-1, ], extract_number)
+```
+```{r}
+modified_df <- modified_df[-c(1, 2), ]
+```
+
+```{r}
+modified_df <- modified_df %>%
+  rename(Participant_ID = QID96)
+```
+
+```{r}
+str(modified_df)
+
+# Convert columns Q1 to Q44 to numeric
+modified_df <- modified_df %>%
+  mutate(across(starts_with("Q"), as.numeric))
+
+modified_df <- modified_df %>%
+  mutate(Participant_ID = as.factor(Participant_ID))
+
+modified_df <- modified_df %>%
+  mutate(SC0 = as.numeric(SC0))
+
+str(modified_df)
+```
+
+# Reverse Code 
+
+```{r}
+# Reverse Code Questions: 2, 6, 8, 9, 12, 18, 21, 23, 24, 27, 31, 34, 35, 37, 41, 43
+
+columns_to_reverse <- c("Q2", "Q6", "Q8", "Q9", "Q12", "Q18", "Q21", "Q23", "Q24", "Q27", "Q31", "Q34", "Q35", "Q37", "Q41", "Q43")
+
+# Reverse code the specified columns
+modified_df[columns_to_reverse] <- lapply(modified_df[columns_to_reverse], function(x) 6 - x)
+```
+
+# Scoring
+
+# Define the items for each personality trait
+```{r}
+extraversion_items <- c("Q1 ", "Q6", "Q11", "Q16", "Q21", "Q26", "Q31", "Q36")
+agreeableness_items <- c("Q2", "Q7 ", "Q12", "Q17", "Q22", "Q27", "Q32", "Q37", "Q42")
+conscientiousness_items <- c("Q3", "Q8", "Q13", "Q18", "Q23", "Q28", "Q33", "Q38", "Q43")
+neuroticism_items <- c("Q4", "Q9", "Q14", "Q19", "Q24", "Q29", "Q34", "Q39")
+openness_items <- c("Q5 ", "Q10", "Q15", "Q20", "Q25", "Q30", "Q35", "Q40", "Q41", "Q44")
+```
+
+
+
+# Calculate scores for each personality trait
+
+```{r}
+modified_df <- modified_df %>%
+  mutate(
+    Extraversion = rowSums(select(., all_of(extraversion_items)), na.rm = TRUE),
+    Agreeableness = rowSums(select(., all_of(agreeableness_items)), na.rm = TRUE),
+    Conscientiousness = rowSums(select(., all_of(conscientiousness_items)), na.rm = TRUE),
+    Neuroticism = rowSums(select(., all_of(neuroticism_items)), na.rm = TRUE),
+    Openness = rowSums(select(., all_of(openness_items)), na.rm = TRUE)
+  )
+# Remove rowwise grouping
+```
+
+# Summarize Scores
+
+```{r}
+descirptives_table <- head(modified_df[c("Participant_ID", "Extraversion", "Agreeableness", 
+                   "Conscientiousness", "Neuroticism", "Openness")])
+```
+
+```{r}
+descirptives_table %>%
+  knitr::kable(digits = 2, col.names = c("Participant ID", "Extraversion", "Agreeableness", 
+                                         "Conscientiousness", "Neuroticism", "Openness"),
+               caption = "Descriptive Statistics for Personality Traits Across Participants")
+
+```
+
